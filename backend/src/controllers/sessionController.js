@@ -143,28 +143,45 @@ const getTodaysSessions = async (req, res) => {
     const end = new Date(targetDate);
     end.setUTCHours(23, 59, 59, 999);
 
+    // Build query
     const query = { sessionDate: { $gte: start, $lte: end } };
-    if (unit) query.unit = unit;
+    if (unit) {
+      query.unit = unit.trim().toUpperCase(); // ✅ FIXED
+    }
 
     const sessions = await Session.find(query).lean();
     if (sessions.length === 0) return res.json([]);
 
-    // Attach patient details
+    // Fetch patient details
     const patientIds = [...new Set(sessions.map(s => s.patientId.toString()))];
     const patients = await Patient.find({ _id: { $in: patientIds } }).lean();
-    const patientMap = Object.fromEntries(patients.map(p => [p._id.toString(), p]));
+    const patientMap = Object.fromEntries(
+      patients.map(p => [p._id.toString(), p])
+    );
 
-    const enriched = sessions.map(session => ({
-      ...session,
-      patient: patientMap[session.patientId.toString()] || null
-    }));
+    // Clean response (IMPORTANT)
+    const enriched = sessions.map(session => {
+      const patient = patientMap[session.patientId.toString()];
+
+      return {
+        patientName: patient?.name || "Unknown",
+        status: session.status,
+        preWeight: session.preWeight,
+        postWeight: session.postWeight || null,
+        preBP: `${session.preSystolicBP}/${session.preDiastolicBP}`,
+        postBP: session.postSystolicBP
+          ? `${session.postSystolicBP}/${session.postDiastolicBP}`
+          : null,
+        duration: session.duration || null,
+        anomalies: session.anomalies
+      };
+    });
 
     res.json(enriched);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 module.exports = {
   createSession,
   startSession,
