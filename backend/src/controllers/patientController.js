@@ -13,11 +13,11 @@ const createPatient = async (req, res) => {
 // get all patients (useful for testing)
 const getPatients = async (req, res) => {
   try {
-    const patients = await Patient.find();
+    const patients = await Patient.find().select("-createdAt -updatedAt -__v -_id");
     res.json(patients);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-console.log(typeof createPatient);
+
 module.exports = { createPatient, getPatients };

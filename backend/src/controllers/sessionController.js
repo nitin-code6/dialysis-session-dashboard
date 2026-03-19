@@ -13,6 +13,7 @@ const { detectAnomalies } = require("../utils/anomaly");
  */
 const createSession = async (req, res) => {
   try {
+    console.log("REQ BODY:", req.body);
     const { patientId } = req.body;
 
     // 1. Verify patient exists and get their unit + dryWeight
@@ -81,7 +82,57 @@ const completeSession = async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 };
+const getTodaysSessions = async (req, res) => {
+  try {
+    const { date, unit } = req.query;
+    const targetDate = date ? new Date(date) : new Date();
+    
+    // Start and end of the day (UTC)
+    const start = new Date(targetDate);
+    start.setUTCHours(0, 0, 0, 0);
+    const end = new Date(targetDate);
+    end.setUTCHours(23, 59, 59, 999);
+
+    // Build query: sessions within the target date range, optionally filtered by unit
+    const query = { sessionDate: { $gte: start, $lte: end } };
+    if (unit) query.unit = unit;
+
+    const sessions = await Session.find(query).lean();
+
+    // If no sessions, return empty array early
+    if (sessions.length === 0) {
+      return res.json([]);
+    }
+
+    // Get unique patient IDs
+    const patientIds = [...new Set(sessions.map(s => s.patientId.toString()))];
+    const patients = await Patient.find({ _id: { $in: patientIds } }).lean();
+    const patientMap = Object.fromEntries(patients.map(p => [p._id.toString(), p]));
+
+    // Enrich each session with patient details
+const enriched = sessions.map(session => {
+  const patient = patientMap[session.patientId.toString()];
+
+  return {
+    patientName: patient?.name || "Unknown",
+    status: session.status,
+    preWeight: session.preWeight,
+    postWeight: session.postWeight || null,
+    preBP: `${session.preSystolicBP}/${session.preDiastolicBP}`,
+    postBP: session.postSystolicBP
+      ? `${session.postSystolicBP}/${session.postDiastolicBP}`
+      : null,
+    duration: session.duration || null,
+    anomalies: session.anomalies
+  };
+});
+
+    res.json(enriched);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 
 
-module.exports = { createSession ,completeSession};
+module.exports = { createSession ,completeSession, getTodaysSessions};
