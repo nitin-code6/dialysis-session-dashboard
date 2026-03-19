@@ -1,8 +1,8 @@
 const express = require("express");
 const SessionRouter = express.Router();
 
-const { createSession } = require("../controllers/sessionController");
+const { createSession,completeSession } = require("../controllers/sessionController");
 
 SessionRouter.post("/", createSession);
-
+SessionRouter.patch("/:id/complete", completeSession);
 module.exports = SessionRouter;

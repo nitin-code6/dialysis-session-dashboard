@@ -20,7 +20,16 @@ const createSession = async (req, res) => {
     if (!patient) {
       return res.status(404).json({ error: "Patient not found" });
     }
+    const existingSession = await Session.findOne({
+          patientId: patientId,
+      status: { $in: ['scheduled', 'in-progress'] }
+});
 
+if (existingSession) {
+  return res.status(409).json({ 
+    error: "Patient already has an active session. Please complete it before starting a new one." 
+  });
+}
     // 2. Compute anomalies based on available data (pre weight vs dry weight)
     //    detectAnomalies will skip checks that need post data
     const anomalies = detectAnomalies(req.body, patient);
