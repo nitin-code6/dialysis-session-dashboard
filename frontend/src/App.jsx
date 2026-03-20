@@ -39,26 +39,21 @@ function App() {
     loadUnits();
   }, []);
 
-  // ✅ START HANDLER
+  // ✅ START SESSION
   const handleStartSession = async (sessionId) => {
     try {
+      if (!sessionId) return;
+
       console.log("🚀 Start clicked:", sessionId);
 
-      if (!sessionId) {
-        console.error("❌ Session ID missing");
-        return;
-      }
-
       await startSession(sessionId);
-
-      console.log("✅ Start success");
-
       refetch();
     } catch (err) {
       console.error('❌ Failed to start session:', err);
     }
   };
 
+  // ✅ MODALS
   const openNotesModal = (session) =>
     setModal({ open: true, session, mode: 'notes' });
 
@@ -104,25 +99,28 @@ function App() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
               {sessions.map((session, index) => {
-                console.log("SESSION OBJECT:", session);
-                // ✅ FIX: SAFE ID EXTRACTION
-                const sessionId = session._id || session.id;
+
+                const sessionId = session._id;
+
+                // ✅ SAFE BP HANDLING
+                const preBPParts = session.preBP ? session.preBP.split("/") : [];
+                const postBPParts = session.postBP ? session.postBP.split("/") : [];
 
                 const mappedSession = {
                   patient: {
                     name: session.patientName || "Unknown Patient",
                   },
-                  
+
                   status: session.status,
 
                   preWeight: session.preWeight,
                   postWeight: session.postWeight,
 
-                  preSystolicBP: session.preBP?.split("/")[0],
-                  preDiastolicBP: session.preBP?.split("/")[1],
+                  preSystolicBP: preBPParts[0] || null,
+                  preDiastolicBP: preBPParts[1] || null,
 
-                  postSystolicBP: session.postBP?.split("/")[0],
-                  postDiastolicBP: session.postBP?.split("/")[1],
+                  postSystolicBP: postBPParts[0] || null,
+                  postDiastolicBP: postBPParts[1] || null,
 
                   duration: session.duration,
                   anomalies: session.anomalies || [],
@@ -136,9 +134,8 @@ function App() {
                     key={sessionId || index}
                     session={mappedSession}
 
-                    // ✅ FIXED ACTIONS
                     onStart={() => handleStartSession(sessionId)}
-                    onComplete={() => openCompleteModal(mappedSession)}
+                    onComplete={() => openCompleteModal(mappedSession)}   // ✅ FIXED
                     onEditNotes={() => openNotesModal(mappedSession)}
                   />
                 );
