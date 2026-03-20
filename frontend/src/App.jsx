@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useSessions } from './hooks/useSessions';
+import { fetchPatients, startSession } from './services/api';
+
 import FilterBar from './components/FilterBar';
-import SessionCard from './components/SessionCard'; // ✅ FIXED
-import { fetchPatients } from './services/api';
+import PatientCard from './components/PatientCard';
+import SessionForm from './components/SessionForm';
+import LoadingSpinner from './components/LoadingSpinner';
+import ErrorAlert from './components/ErrorAlert';
 
 function App() {
   const [selectedUnit, setSelectedUnit] = useState('');
   const [showOnlyAnomalies, setShowOnlyAnomalies] = useState(false);
   const [units, setUnits] = useState([]);
+  const [modal, setModal] = useState({
+    open: false,
+    session: null,
+    mode: 'create'
+  });
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -17,7 +26,6 @@ function App() {
     showOnlyAnomalies
   );
 
-  // Fetch units
   useEffect(() => {
     const loadUnits = async () => {
       try {
@@ -31,68 +39,110 @@ function App() {
     loadUnits();
   }, []);
 
-  // ✅ Handlers
-  const handleEditNotes = (session) => {
-    console.log('Edit notes for', session._id);
+  // 🔥 ACTIONS
+  const handleStartSession = async (sessionId) => {
+    try {
+      await startSession(sessionId);
+      refetch();
+    } catch (err) {
+      console.error('Failed to start session', err);
+    }
   };
 
-  const handleComplete = async (session) => {
-    console.log('Complete session', session._id);
-    // later: call API + refetch()
-    // await completeSession(session._id);
-    // refetch();
+  const openNotesModal = (session) =>
+    setModal({ open: true, session, mode: 'notes' });
+
+  const openCompleteModal = (session) =>
+    setModal({ open: true, session, mode: 'complete' });
+
+  const closeModal = () =>
+    setModal({ open: false, session: null, mode: 'create' });
+
+  const onModalSuccess = () => {
+    refetch();
+    closeModal();
   };
 
-  // Loading UI
-  if (loading && sessions.length === 0) {
-    return (
-      <div className="flex justify-center p-6">
-        <span className="loading loading-spinner loading-lg"></span>
-      </div>
-    );
-  }
-
-  // Error UI
-  if (error) {
-    return (
-      <div className="p-4 text-red-500 text-center">
-        Error: {error}
-      </div>
-    );
-  }
+  if (loading && sessions.length === 0) return <LoadingSpinner />;
+  if (error) return <ErrorAlert message={error} onRetry={refetch} />;
 
   return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">
-        Dialysis Schedule - {today}
-      </h1>
+    <div className="min-h-screen bg-base-200">
+      <div className="container mx-auto p-4 max-w-6xl">
+        <div className="bg-base-100 rounded-box shadow-xl p-6">
 
-      {/* Filters */}
-      <FilterBar
-        selectedUnit={selectedUnit}
-        onUnitChange={setSelectedUnit}
-        showOnlyAnomalies={showOnlyAnomalies}
-        onAnomalyFilterChange={setShowOnlyAnomalies}
-        units={units}
-      />
+          {/* Header */}
+          <h1 className="text-3xl font-bold mb-2">
+            Dialysis Dashboard
+          </h1>
+          <p className="text-gray-500 mb-6">{today}</p>
 
-      {/* Sessions List */}
-      <div className="space-y-4">
-        {sessions.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">
-            No sessions scheduled for today
-          </div>
-        ) : (
-          sessions.map(session => (
-            <SessionCard
-              key={session._id}
-              session={session}
-              onEditNotes={handleEditNotes}
-              onComplete={handleComplete}
-            />
-          ))
-        )}
+          {/* Filters */}
+          <FilterBar
+            selectedUnit={selectedUnit}
+            onUnitChange={setSelectedUnit}
+            showOnlyAnomalies={showOnlyAnomalies}
+            onAnomalyFilterChange={setShowOnlyAnomalies}
+            units={units}
+          />
+
+          {/* Content */}
+          {sessions.length === 0 ? (
+            <div className="alert alert-info shadow-lg mt-4">
+              <span>No sessions scheduled for today.</span>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+              {sessions.map((session, index) => {
+
+                // 🔥 FIXED MAPPING (VERY IMPORTANT)
+                const mappedSession = {
+                  patient: {
+                    name: session.patientName || "Unknown Patient",
+                  },
+
+                  status: session.status,
+
+                  preWeight: session.preWeight,
+                  postWeight: session.postWeight,
+
+                  preSystolicBP: session.preBP?.split("/")[0],
+                  preDiastolicBP: session.preBP?.split("/")[1],
+
+                  postSystolicBP: session.postBP?.split("/")[0],
+                  postDiastolicBP: session.postBP?.split("/")[1],
+
+                  duration: session.duration,
+                  anomalies: session.anomalies || [],
+                  notes: session.notes,
+
+                  _id: session._id
+                };
+
+                return (
+                  <PatientCard
+                    key={index}
+                    session={mappedSession}
+                    onStart={() => handleStartSession(session._id)}
+                    onComplete={() => openCompleteModal(session)}
+                    onEditNotes={() => openNotesModal(session)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Modal */}
+      {modal.open && (
+        <SessionForm
+          session={modal.session}
+          mode={modal.mode}
+          onClose={closeModal}
+          onSuccess={onModalSuccess}
+        />
+      )}
     </div>
   );
 }

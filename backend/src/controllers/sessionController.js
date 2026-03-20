@@ -2,10 +2,7 @@ const Session = require("../models/Session");
 const Patient = require("../models/Patient");
 const { detectAnomalies } = require("../utils/anomaly");
 
-/**
- * Create a new dialysis session (pre‑dialysis data only)
- * POST /api/v1/sessions
- */
+/* Create a new dialysis session (pre‑dialysis data only) */
 const createSession = async (req, res) => {
   try {
     const { patientId } = req.body;
@@ -43,10 +40,7 @@ const createSession = async (req, res) => {
   }
 };
 
-/**
- * Start a session (change status from scheduled → in-progress)
- * PATCH /api/v1/sessions/:id/start
- */
+/*Start a session (change status from scheduled → in-progress)*/
 const startSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -70,7 +64,7 @@ const startSession = async (req, res) => {
 
 /**
  * Complete a session (add post‑dialysis data, set status to completed)
- * PATCH /api/v1/sessions/:id/complete
+ * PATCH /api/sessions/:id/complete
  */
 const completeSession = async (req, res) => {
   try {
@@ -105,7 +99,7 @@ const completeSession = async (req, res) => {
 
 /**
  * Update nurse notes
- * PATCH /api/v1/sessions/:id/notes
+ * PATCH /api/sessions/:id/notes
  */
 const updateNotes = async (req, res) => {
   try {
@@ -130,7 +124,7 @@ const updateNotes = async (req, res) => {
 
 /**
  * Get today's schedule (optionally by unit)
- * GET /api/v1/sessions?date=YYYY-MM-DD&unit=UNIT
+ * GET /api/sessions?date=YYYY-MM-DD&unit=UNIT
  */
 const getTodaysSessions = async (req, res) => {
   try {

@@ -1,10 +1,11 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5500/api',
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 export const fetchPatients = () => API.get('/patients');
+export const createPatient = (data) => API.post('/patients', data);
 export const fetchSessions = (params) => API.get('/sessions', { params });
 export const createSession = (data) => API.post('/sessions', data);
 export const startSession = (id) => API.patch(`/sessions/${id}/start`);

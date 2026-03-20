@@ -44,5 +44,5 @@ function detectAnomalies(session, patient) {
 
   return anomalies;
 }
-console.log( "detectAnomaly",typeof detectAnomalies);
+// console.log( "detectAnomaly",typeof detectAnomalies);
 module.exports = { detectAnomalies };

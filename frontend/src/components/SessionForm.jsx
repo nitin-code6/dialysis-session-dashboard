@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { usePatients } from '../hooks/usePatients';
 import { createSession, updateNotes, completeSession } from '../services/api';
 
-export default function SessionForm({ session, onClose, onSuccess }) {
+export default function SessionForm({ session, mode, onClose, onSuccess }) {
   const { patients, loading: patientsLoading } = usePatients();
   const [formData, setFormData] = useState({
     patientId: '',
@@ -19,9 +19,7 @@ export default function SessionForm({ session, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const mode = session?.mode || 'create'; // 'create', 'notes', 'complete'
-
-  // Pre-fill data when editing/complete
+  // Pre-fill for edit/complete modes
   useEffect(() => {
     if (session && session._id) {
       setFormData({
@@ -61,8 +59,8 @@ export default function SessionForm({ session, onClose, onSuccess }) {
         };
         await completeSession(session._id, payload);
       }
-      onSuccess(); // refresh session list
-      onClose();   // close modal
+      onSuccess(); // refresh
+      onClose();
     } catch (err) {
       setError(err.response?.data?.error || err.message);
     } finally {
@@ -82,6 +80,7 @@ export default function SessionForm({ session, onClose, onSuccess }) {
             onChange={handleChange}
             maxLength={300}
             rows={3}
+            required
           />
         </div>
       );

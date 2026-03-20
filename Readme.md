@@ -1,94 +1,183 @@
-# Dialysis Session Dashboard — Backend
-A Node.js + Express + MongoDB API for tracking dialysis sessions and detecting clinical anomalies such as excess weight gain, high blood pressure, and abnormal session duration.
+# 🩺 Dialysis Session Dashboard — Backend
 
-## Tech Stack
-* Backend: Node.js, Express
-* Database: MongoDB, Mongoose
-* Language: JavaScript
-* Dev Tools: Nodemon  
+A minimal yet realistic **Node.js + Express + MongoDB API** for tracking dialysis sessions and detecting clinically significant anomalies such as excess weight gain, high blood pressure, and abnormal session duration.
 
-## Project Structure
+---
 
-```
+## 🚀 Tech Stack
+
+- **Backend:** Node.js, Express  
+- **Database:** MongoDB, Mongoose  
+- **Language:** JavaScript  
+
+---
+
+## 📁 Project Structure
+
 backend/
-  src/
-    config/        # DB connection, constants
-    models/        # Patient, Session schemas
-    controllers/   # API logic
-    routes/        # API routes
-    utils/         # anomaly detection logic
-    app.js
-    server.js
-  .env
-  seed.js
-```
-## Data Models
+│
+├── src/
+│   ├── config/        # DB connection, constants
+│   ├── models/        # Mongoose schemas
+│   ├── controllers/   # Business logic
+│   ├── routes/        # API routes
+│   ├── utils/         # Anomaly detection logic
+│
+├── app.js
+├── server.js
+├── seed.js
+├── .env
+
+---
+## 📊 Data Models
+
 ### Patient
 
-Stores static patient information:
+| Field       | Type   | Description                     |
+|------------|--------|---------------------------------|
+| name       | String | Full name                       |
+| age        | Number | Age (0–110)                     |
+| gender     | String | male / female / other           |
+| dryWeight  | Number | Baseline weight (kg)            |
+| unit       | String | Clinic unit (indexed)           |
 
-* name, age, gender
-* dryWeight (baseline weight)
-* unit (clinic, indexed for fast queries)
+---
 ### Session
 
-Stores dynamic dialysis session data:
+| Field            | Type     | Description                          |
+|------------------|----------|--------------------------------------|
+| patientId        | ObjectId | Reference to Patient                 |
+| unit             | String   | Copied from patient                  |
+| preWeight        | Number   | Pre-dialysis weight                  |
+| preSystolicBP    | Number   | Pre systolic BP                      |
+| preDiastolicBP   | Number   | Pre diastolic BP                     |
+| postWeight       | Number   | Post weight                          |
+| postSystolicBP   | Number   | Post systolic BP                     |
+| postDiastolicBP  | Number   | Post diastolic BP                    |
+| duration         | Number   | Session duration (minutes)           |
+| machineId        | String   | Machine identifier                   |
+| notes            | String   | Nurse notes                          |
+| status           | String   | scheduled / in-progress / completed  |
+| anomalies        | [String] | Detected anomalies                   |
+| sessionDate      | Date     | Session date (indexed)               |
 
-* patientId (reference to Patient)
-* unit (copied from patient for fast queries)
-* preWeight, postWeight
-* pre/post blood pressure
-* duration (minutes)
-* machineId, notes
-* status (`scheduled`, `in-progress`, `completed`)
-* anomalies (detected issues)
-* sessionDate (indexed)
-## API Endpoints
-| Method | Endpoint                 | Description                  |
-| ------ | ------------------------ | ---------------------------- |
-| POST   | `/patients`              | Create patient               |
-| GET    | `/patients`              | Get all patients             |
-| POST   | `/sessions`              | Create session (pre data)    |
-| PATCH  | `/sessions/:id/complete` | Complete session (post data) |
-## Anomaly Detection Logic
+---
 
-Anomalies are computed using session data and patient dry weight.
+## 🔗 API Endpoints
 
-| Anomaly            | Condition                       | Reason                    |
-| ------------------ | ------------------------------- | ------------------------- |
-| Excess Weight Gain | `preWeight - dryWeight > 3 kg`  | Unsafe fluid accumulation |
-| Inadequate Removal | `postWeight - dryWeight > 2 kg` | Incomplete dialysis       |
-| High BP            | `≥ 140 / 90`                    | Hypertension risk         |
-| Short Session      | `< 120 min`                     | Incomplete treatment      |
-| Long Session       | `> 300 min`                     | Possible complications    |
+**Base URL:** `/api`
 
-> Anomalies depending on post data are evaluated only after session completion.
-## Business Rules
-* A patient cannot have multiple active sessions at the same time
-* Only one session per patient per day
-* Unit is derived from patient to maintain consistency
-* Anomalies are stored to avoid recomputation
+| Method | Endpoint                     | Description                        |
+|--------|-----------------------------|------------------------------------|
+| POST   | `/patients`                 | Create patient                     |
+| GET    | `/patients`                 | Get all patients                   |
+| POST   | `/sessions`                 | Create session                     |
+| PATCH  | `/sessions/:id/start`       | Start session                      |
+| PATCH  | `/sessions/:id/complete`    | Complete session                   |
+| PATCH  | `/sessions/:id/notes`       | Update notes                       |
+| GET    | `/sessions`                 | Get today's sessions               |
 
-## Assumptions & Trade-offs
+---
 
-* **Denormalization:** `unit` stored in session for fast queries
-* **No authentication:** skipped for simplicity
-* **Simplified workflow:** session created and completed in stages
-* **Anomaly storage:** improves performance but requires updates if rules change
+### 🔍 Query Parameters (`GET /sessions`)
 
-## Current Status
+| Parameter | Description                          |
+|-----------|--------------------------------------|
+| date      | YYYY-MM-DD (default: today)          |
+| unit      | Filter by clinic unit                |
 
-* Patient API implemented
-* Session creation & completion flow implemented
-* Anomaly detection system implemented
-* Clean modular backend architecture
+**Example:**
 
-## Next Steps
+---
 
-* Todays Schedule API 
-* Build React dashboard (session view + anomaly highlights)
-* Add filters (unit, anomaly-only)
-* Improve validation & edge-case handling
+## 🔄 Session Workflow
 
+1. **Create Session** → `scheduled`  
+2. **Start Session** → `in-progress`  
+3. **Complete Session** → `completed` + anomalies calculated  
+4. **Update Notes** → anytime  
 
+---
 
+## ⚠️ Anomaly Detection
+
+Configured in `config/constants.js`.
+
+| Anomaly                     | Condition |
+|-----------------------------|----------|
+| EXCESS_WEIGHT_GAIN          | preWeight - dryWeight > 3 kg |
+| INADEQUATE_FLUID_REMOVAL    | postWeight - dryWeight > 2 kg |
+| HIGH_BP                     | systolic ≥ 140 OR diastolic ≥ 90 |
+| SHORT_SESSION               | duration < 120 min |
+| LONG_SESSION                | duration > 300 min |
+
+---
+
+## 📌 Clinical Assumptions & Trade-offs
+
+- Weight gain threshold **3 kg** → based on common clinical practice  
+- High BP threshold **140/90 mmHg** → standard hypertension guideline  
+- Session duration **120–300 minutes** → typical dialysis session range    
+
+### Design Decisions
+
+- Thresholds are configurable (no hardcoding)  
+- Anomalies stored in database (performance optimized)  
+- Unit denormalized for faster queries  
+- No authentication (kept minimal for assignment scope)
+
+---
+
+## 📦 Example Requests
+
+### ➤ Create Patient
+
+POST /patients
+{
+  "name": "John Doe",
+  "age": 45,
+  "gender": "male",
+  "dryWeight": 75.5,
+  "unit": "CLINIC A"
+}
+###  ➤ Create Session
+
+POST /sessions
+{
+  "patientId": "patient_id",
+  "machineId": "MACH-01",
+  "preWeight": 78.5,
+  "preSystolicBP": 135,
+  "preDiastolicBP": 85
+}
+### ➤ Start Session
+PATCH /sessions/:id/start
+### ➤ Complete Session
+PATCH /sessions/:id/complete
+{
+  "postWeight": 75.0,
+  "postSystolicBP": 142,
+  "postDiastolicBP": 88,
+  "duration": 240
+}
+### ➤ Update Notes
+PATCH /sessions/:id/notes
+{
+  "notes": "Patient reported mild dizziness"
+}
+### ➤ Get Sessions
+GET /sessions?unit=CLINIC A
+
+▶️ Running the Project
+npm install
+Create .env:
+PORT=5500
+MONGO_URI=mongodb_uri
+# Optional: seed data
+node seed.js
+# Start server
+npm run dev
+
+Server URL:
+
+http://localhost:5500
