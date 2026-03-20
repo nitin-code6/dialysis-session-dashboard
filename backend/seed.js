@@ -7,20 +7,21 @@ require('dotenv').config();
 
 const MONGO_URI = process.env.connection_string;
 
-// Sample patients
 const patientsData = [
   { name: 'John Doe', age: 45, gender: 'male', dryWeight: 75.5, unit: 'CLINIC A' },
   { name: 'Jane Smith', age: 52, gender: 'female', dryWeight: 62.0, unit: 'CLINIC A' },
   { name: 'Bob Johnson', age: 38, gender: 'male', dryWeight: 85.0, unit: 'CLINIC B' },
   { name: 'Alice Brown', age: 60, gender: 'female', dryWeight: 70.0, unit: 'CLINIC B' },
   { name: 'Charlie Wilson', age: 70, gender: 'male', dryWeight: 68.5, unit: 'CLINIC C' },
+  { name: 'David Miller', age: 55, gender: 'male', dryWeight: 80.0, unit: 'CLINIC C' },
+  { name: 'Emma Davis', age: 48, gender: 'female', dryWeight: 65.0, unit: 'CLINIC D' },
+  { name: 'Frank Moore', age: 63, gender: 'male', dryWeight: 72.0, unit: 'CLINIC D' },
 ];
 
-// Helper to create a date relative to today (e.g., today, yesterday, etc.)
 const getDate = (daysOffset = 0) => {
   const d = new Date();
   d.setDate(d.getDate() + daysOffset);
-  d.setHours(8, 0, 0, 0); // set to 8 AM local time
+  d.setHours(8, 0, 0, 0);
   return d;
 };
 
@@ -29,20 +30,18 @@ const seed = async () => {
     await mongoose.connect(MONGO_URI);
     console.log('Connected to MongoDB');
 
-    // Clear existing data
     await Patient.deleteMany({});
     await Session.deleteMany({});
     console.log('Cleared old data');
 
-    // Insert patients
     const createdPatients = await Patient.insertMany(patientsData);
     console.log(`Inserted ${createdPatients.length} patients`);
 
-    // Build sessions
     const sessions = [];
 
     for (const patient of createdPatients) {
-      // Today's scheduled session (not started)
+
+      // 🔵 Scheduled (today)
       sessions.push({
         patientId: patient._id,
         unit: patient.unit,
@@ -51,68 +50,81 @@ const seed = async () => {
         preSystolicBP: 130,
         preDiastolicBP: 80,
         status: 'scheduled',
-        notes: 'Regular check',
-        sessionDate: getDate(0), // today
+        notes: 'Scheduled session',
+        sessionDate: getDate(0),
       });
 
-      // One in-progress session for a specific patient
-      if (patient.name === 'John Doe') {
-        sessions.push({
-          patientId: patient._id,
-          unit: patient.unit,
-          machineId: 'MACH-02',
-          preWeight: patient.dryWeight + 3.2,
-          preSystolicBP: 145,
-          preDiastolicBP: 95,
-          status: 'in-progress',
-          notes: 'Patient feeling well',
-          sessionDate: getDate(0), // today
-        });
-      }
+      // 🟡 In-progress (today)
+      sessions.push({
+        patientId: patient._id,
+        unit: patient.unit,
+        machineId: 'MACH-02',
+        preWeight: patient.dryWeight + 3.5,
+        preSystolicBP: 150,
+        preDiastolicBP: 95,
+        status: 'in-progress',
+        notes: 'Monitoring vitals',
+        sessionDate: getDate(0),
+      });
 
-      // Completed sessions with anomalies
-      if (patient.unit === 'CLINIC B') {
-        const session = {
-          patientId: patient._id,
-          unit: patient.unit,
-          machineId: 'MACH-03',
-          preWeight: patient.dryWeight + 4.0,
-          preSystolicBP: 140,
-          preDiastolicBP: 90,
-          postWeight: patient.dryWeight + 1.5,
-          postSystolicBP: 150,
-          postDiastolicBP: 95,
-          duration: 110,
-          status: 'completed',
-          notes: 'Patient left early',
-          sessionDate: getDate(-1), // yesterday
-        };
-        session.anomalies = detectAnomalies(session, patient);
-        sessions.push(session);
-      }
+      // 🔴 Completed (HIGH BP anomaly)
+      let session1 = {
+        patientId: patient._id,
+        unit: patient.unit,
+        machineId: 'MACH-03',
+        preWeight: patient.dryWeight + 3.0,
+        preSystolicBP: 145,
+        preDiastolicBP: 92,
+        postWeight: patient.dryWeight + 1.0,
+        postSystolicBP: 150,
+        postDiastolicBP: 95,
+        duration: 240,
+        status: 'completed',
+        notes: 'High BP observed',
+        sessionDate: getDate(-1),
+      };
+      session1.anomalies = detectAnomalies(session1, patient);
+      sessions.push(session1);
 
-      if (patient.unit === 'CLINIC C') {
-        const session = {
-          patientId: patient._id,
-          unit: patient.unit,
-          machineId: 'MACH-04',
-          preWeight: patient.dryWeight + 2.0,
-          preSystolicBP: 125,
-          preDiastolicBP: 80,
-          postWeight: patient.dryWeight + 0.5,
-          postSystolicBP: 128,
-          postDiastolicBP: 82,
-          duration: 320,
-          status: 'completed',
-          notes: 'Equipment calibration took time',
-          sessionDate: getDate(-2), // two days ago
-        };
-        session.anomalies = detectAnomalies(session, patient);
-        sessions.push(session);
-      }
+      // 🔴 Completed (SHORT SESSION anomaly)
+      let session2 = {
+        patientId: patient._id,
+        unit: patient.unit,
+        machineId: 'MACH-04',
+        preWeight: patient.dryWeight + 4.0,
+        preSystolicBP: 135,
+        preDiastolicBP: 85,
+        postWeight: patient.dryWeight + 2.5,
+        postSystolicBP: 138,
+        postDiastolicBP: 88,
+        duration: 100, // short
+        status: 'completed',
+        notes: 'Session ended early',
+        sessionDate: getDate(-2),
+      };
+      session2.anomalies = detectAnomalies(session2, patient);
+      sessions.push(session2);
+
+      // 🔴 Completed (LONG SESSION anomaly)
+      let session3 = {
+        patientId: patient._id,
+        unit: patient.unit,
+        machineId: 'MACH-05',
+        preWeight: patient.dryWeight + 2.0,
+        preSystolicBP: 120,
+        preDiastolicBP: 80,
+        postWeight: patient.dryWeight + 0.5,
+        postSystolicBP: 122,
+        postDiastolicBP: 82,
+        duration: 320, // long
+        status: 'completed',
+        notes: 'Extended dialysis',
+        sessionDate: getDate(-3),
+      };
+      session3.anomalies = detectAnomalies(session3, patient);
+      sessions.push(session3);
     }
 
-    // Insert all sessions
     await Session.insertMany(sessions);
     console.log(`Inserted ${sessions.length} sessions`);
 

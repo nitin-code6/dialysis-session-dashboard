@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSessions } from './hooks/useSessions';
 import FilterBar from './components/FilterBar';
+import SessionCard from './components/SessionCard'; // ✅ FIXED
 import { fetchPatients } from './services/api';
 
 function App() {
@@ -8,16 +9,15 @@ function App() {
   const [showOnlyAnomalies, setShowOnlyAnomalies] = useState(false);
   const [units, setUnits] = useState([]);
 
-  // Get today's date (YYYY-MM-DD)
   const today = new Date().toISOString().split('T')[0];
 
-  const { sessions, loading, error } = useSessions(
+  const { sessions, loading, error, refetch } = useSessions(
     today,
     selectedUnit,
     showOnlyAnomalies
   );
 
-  // Fetch units from patients
+  // Fetch units
   useEffect(() => {
     const loadUnits = async () => {
       try {
@@ -30,6 +30,18 @@ function App() {
     };
     loadUnits();
   }, []);
+
+  // ✅ Handlers
+  const handleEditNotes = (session) => {
+    console.log('Edit notes for', session._id);
+  };
+
+  const handleComplete = async (session) => {
+    console.log('Complete session', session._id);
+    // later: call API + refetch()
+    // await completeSession(session._id);
+    // refetch();
+  };
 
   // Loading UI
   if (loading && sessions.length === 0) {
@@ -72,58 +84,12 @@ function App() {
           </div>
         ) : (
           sessions.map(session => (
-            <div
+            <SessionCard
               key={session._id}
-              className="card bg-base-100 shadow-xl p-4 border border-base-200"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center">
-                <h2 className="card-title">
-                  {session.patientName || 'Unknown'}
-                </h2>
-
-                <span
-                  className={`badge ${
-                    session.status === 'completed'
-                      ? 'badge-success'
-                      : session.status === 'in-progress'
-                      ? 'badge-info'
-                      : 'badge-ghost'
-                  }`}
-                >
-                  {session.status}
-                </span>
-              </div>
-
-              {/* Pre Data */}
-             
-              <p>
-                Pre: {session.preWeight} kg | BP {session.preBP || 'N/A'}
-              </p>
-
-              {/* Post Data */}
-              {session.postWeight && (
-               
-           <p>
-             Post: {session.preWeight} kg | BP {session.postBP || 'N/A'}
-            </p>
-              )}
-
-              {/* Duration */}
-              {session.duration && (
-                <p>Duration: {session.duration} min</p>
-              )}
-
-              {/* Notes */}
-              {session.notes && <p>Notes: {session.notes}</p>}
-
-              {/* Anomalies */}
-              {session.anomalies?.length > 0 && (
-                <div className="alert alert-warning mt-2">
-                  <span>⚠ {session.anomalies.join(', ')}</span>
-                </div>
-              )}
-            </div>
+              session={session}
+              onEditNotes={handleEditNotes}
+              onComplete={handleComplete}
+            />
           ))
         )}
       </div>
