@@ -2,7 +2,7 @@
 A full-stack web application for dialysis centers to track patient sessions, record vitals, and automatically detect clinical anomalies such as excess weight gain, high blood pressure, and abnormal session duration.
 
 <p align="center">
-  <img src="./assets/dashboard.png" alt="Dialysis Dashboard" width="800"/>
+  <img src="./assets/DASHBOARD.png" alt="Dialysis Dashboard" width="800"/>
 </p>
 
 ## 📋 Table of Contents
@@ -112,7 +112,7 @@ Place your screenshots in a `screenshots` folder at the project root. Then use t
 
 | Dashboard | Add Session | Register Patient|
 |-----------|-------------|------------------|
-| ![Dashboard](./assets/dashboard.png) | ![Add Session](./assets/CreateSession.png) | ![Complete Session](./assets/RegisterNewPatient.png) |
+| ![Dashboard](./assets/DASHBOARD.png) | ![Add Session](./assets/CreateSession.png) | ![Complete Session](./assets/RegisterNewPatient.png) |
 
 ## 📄 API Documentation
 
