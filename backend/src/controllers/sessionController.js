@@ -168,7 +168,8 @@ const getTodaysSessions = async (req, res) => {
           ? `${session.postSystolicBP}/${session.postDiastolicBP}`
           : null,
         duration: session.duration || null,
-        anomalies: session.anomalies
+        anomalies: session.anomalies,
+        notes: session.notes
       };
     });
 

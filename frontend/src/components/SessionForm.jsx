@@ -10,7 +10,7 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
     notes: ""
   });
 
-  // ✅ Prefill notes if editing
+  // ✅ Prefill notes
   useEffect(() => {
     if (session && mode === "notes") {
       setForm((prev) => ({
@@ -28,7 +28,7 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
     });
   };
 
-  // ✅ Submit handler
+  // ✅ Submit
   const handleSubmit = async () => {
     try {
       if (!session?._id) return;
@@ -45,7 +45,9 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
 
       if (mode === "notes") {
         await updateNotes(session._id, form.notes);
+        console.log("Updating notes:", session._id, form.notes);
       }
+      
 
       onSuccess();
     } catch (err) {
@@ -56,13 +58,17 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
   return (
     <div className="modal modal-open">
       <div className="modal-box space-y-4">
-        
+
         {/* Header */}
         <h2 className="text-xl font-bold">
-          {mode === "complete" ? "Complete Session" : "Edit Notes"}
+          {mode === "complete"
+            ? "Complete Session"
+            : mode === "notes"
+            ? "Edit Notes"
+            : "Session Summary"}
         </h2>
 
-        {/* COMPLETE FORM */}
+        {/* ✅ COMPLETE FORM */}
         {mode === "complete" && (
           <div className="space-y-3">
 
@@ -100,7 +106,81 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
           </div>
         )}
 
-        {/* NOTES FORM */}
+        {/* ✅ VIEW SUMMARY (READ-ONLY) */}
+       {mode === "view" && (
+  <div className="space-y-4 text-sm">
+
+    {/* Patient */}
+    <div>
+      <p className="font-semibold text-base">
+        {session.patient?.name || "Unknown Patient"}
+      </p>
+      <p className="text-xs text-gray-400 capitalize">
+        Status: {session.status}
+      </p>
+    </div>
+
+    {/* Pre Dialysis */}
+    <div className="p-3 bg-base-200 rounded">
+      <p className="font-semibold mb-1">Pre-Dialysis</p>
+      <p>Weight: {session.preWeight ?? "--"} kg</p>
+      <p>
+        BP: {session.preSystolicBP && session.preDiastolicBP
+          ? `${session.preSystolicBP}/${session.preDiastolicBP}`
+          : "--"}
+      </p>
+    </div>
+
+    {/* Post Dialysis */}
+    <div className="p-3 bg-base-200 rounded">
+      <p className="font-semibold mb-1">Post-Dialysis</p>
+      <p>Weight: {session.postWeight ?? "--"} kg</p>
+      <p>
+        BP: {session.postSystolicBP && session.postDiastolicBP
+          ? `${session.postSystolicBP}/${session.postDiastolicBP}`
+          : "--"}
+      </p>
+    </div>
+
+    {/* Session Info */}
+    <div className="p-3 bg-base-200 rounded">
+      <p><strong>Duration:</strong> {session.duration || "--"} mins</p>
+      <p><strong>Notes:</strong> {session.notes || "No notes"}</p>
+    </div>
+
+    {/* Anomalies */}
+    {session.anomalies?.length > 0 && (
+      <div className="p-3 bg-red-100 rounded">
+        <p className="font-semibold text-red-600 mb-1">Anomalies</p>
+        <ul className="list-disc list-inside text-red-600 text-xs">
+          {session.anomalies.map((a, i) => (
+            <li key={i}>{a}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+
+  </div>
+)} {mode === "view" && (
+          <div className="space-y-2 text-sm">
+
+            <p><strong>Post Weight:</strong> {session.postWeight || "--"} kg</p>
+
+            <p>
+              <strong>Post BP:</strong>{" "}
+              {session.postSystolicBP && session.postDiastolicBP
+                ? `${session.postSystolicBP}/${session.postDiastolicBP}`
+                : "--"}
+            </p>
+
+            <p><strong>Duration:</strong> {session.duration || "--"} mins</p>
+
+            <p><strong>Notes:</strong> {session.notes || "No notes"}</p>
+
+          </div>
+        )}
+
+        {/* ✅ NOTES INPUT */}
         {(mode === "notes" || mode === "complete") && (
           <textarea
             name="notes"
@@ -111,15 +191,18 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
           />
         )}
 
-        {/* ACTION BUTTONS */}
+        {/* ACTIONS */}
         <div className="modal-action">
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
 
-          <button className="btn btn-primary" onClick={handleSubmit}>
-            Save
-          </button>
+          {/* ❌ Hide in view mode */}
+          {mode !== "view" && (
+            <button className="btn btn-primary" onClick={handleSubmit}>
+              Save
+            </button>
+          )}
         </div>
       </div>
     </div>

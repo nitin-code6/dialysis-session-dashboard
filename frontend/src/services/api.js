@@ -10,6 +10,6 @@ export const fetchSessions = (params) => API.get('/sessions', { params });
 export const createSession = (data) => API.post('/sessions', data);
 export const startSession = (id) => API.patch(`/sessions/${id}/start`);
 export const completeSession = (id, data) => API.patch(`/sessions/${id}/complete`, data);
-export const updateNotes = (id, notes) => API.patch(`/sessions/${id}/notes`, { notes });
+export const updateNotes = (id, notes) =>  API.patch(`/sessions/${id}/notes`, { notes });
 
 export default API;

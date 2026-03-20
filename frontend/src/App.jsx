@@ -43,9 +43,6 @@ function App() {
   const handleStartSession = async (sessionId) => {
     try {
       if (!sessionId) return;
-
-      console.log("🚀 Start clicked:", sessionId);
-
       await startSession(sessionId);
       refetch();
     } catch (err) {
@@ -56,6 +53,9 @@ function App() {
   // ✅ MODALS
   const openNotesModal = (session) =>
     setModal({ open: true, session, mode: 'notes' });
+
+  const openViewModal = (session) =>
+    setModal({ open: true, session, mode: 'view' });
 
   const openCompleteModal = (session) =>
     setModal({ open: true, session, mode: 'complete' });
@@ -135,8 +135,9 @@ function App() {
                     session={mappedSession}
 
                     onStart={() => handleStartSession(sessionId)}
-                    onComplete={() => openCompleteModal(mappedSession)}   // ✅ FIXED
+                    onComplete={() => openCompleteModal(mappedSession)}
                     onEditNotes={() => openNotesModal(mappedSession)}
+                    onView={() => openViewModal(mappedSession)}   // ✅ FIXED
                   />
                 );
               })}
