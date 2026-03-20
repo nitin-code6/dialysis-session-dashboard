@@ -13,7 +13,7 @@ const createPatient = async (req, res) => {
 // get all patients (useful for testing)
 const getPatients = async (req, res) => {
   try {
-    const patients = await Patient.find().select("-createdAt -updatedAt -__v -_id");
+    const patients = await Patient.find().select("-createdAt -updatedAt -__v ");
     res.json(patients);
   } catch (error) {
     res.status(500).json({ error: error.message });

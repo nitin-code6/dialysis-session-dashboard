@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
-import { completeSession, updateNotes } from "../services/api";
+import { completeSession, updateNotes, createSession } from "../services/api";
 
-export default function SessionForm({ session, mode, onClose, onSuccess }) {
+export default function SessionForm({
+  session,
+  mode,
+  onClose,
+  onSuccess,
+  patients = []
+}) {
   const [form, setForm] = useState({
+    patientId: "",
+    unit: "",
+    preWeight: "",
+    preSystolicBP: "",
+    preDiastolicBP: "",
+    sessionDate: "",
+    machineId: "", // ✅ ADDED
     postWeight: "",
     postSystolicBP: "",
     postDiastolicBP: "",
@@ -10,7 +23,6 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
     notes: ""
   });
 
-  // ✅ Prefill notes
   useEffect(() => {
     if (session && mode === "notes") {
       setForm((prev) => ({
@@ -20,18 +32,56 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
     }
   }, [session, mode]);
 
-  // ✅ Handle input
   const handleChange = (e) => {
-    setForm({
-      ...form,
+    if (e.target.name === "patientId") {
+      const selected = patients.find(p => p._id === e.target.value);
+
+      setForm(prev => ({
+        ...prev,
+        patientId: selected?._id || "",
+        unit: selected?.unit || ""
+      }));
+      return;
+    }
+
+    setForm(prev => ({
+      ...prev,
       [e.target.name]: e.target.value
-    });
+    }));
   };
 
-  // ✅ Submit
   const handleSubmit = async () => {
     try {
-      if (!session?._id) return;
+      if (mode === "create") {
+
+        if (!form.patientId) {
+          alert("Please select a patient");
+          return;
+        }
+
+        if (!form.sessionDate) {
+          alert("Please select a date");
+          return;
+        }
+
+        if (!form.machineId) {
+          alert("Please enter machine ID");
+          return;
+        }
+
+        console.log("FINAL DATA SENT:", form);
+
+        await createSession({
+          patientId: form.patientId,
+          unit: form.unit,
+          preWeight: Number(form.preWeight),
+          preSystolicBP: Number(form.preSystolicBP),
+          preDiastolicBP: Number(form.preDiastolicBP),
+          machineId: form.machineId,   // ✅ IMPORTANT
+          notes: form.notes,
+          sessionDate: form.sessionDate   // ✅ STRING (correct)
+        });
+      }
 
       if (mode === "complete") {
         await completeSession(session._id, {
@@ -45,13 +95,19 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
 
       if (mode === "notes") {
         await updateNotes(session._id, form.notes);
-        console.log("Updating notes:", session._id, form.notes);
       }
-      
 
       onSuccess();
+
     } catch (err) {
-      console.error("❌ Submit failed:", err);
+      if (err.response?.status === 409) {
+        alert("Session already exists for this patient on this date");
+      } else if (err.response?.status === 400) {
+        alert("Invalid data. Please check inputs.");
+      } else {
+        console.error("❌ Submit failed:", err);
+        alert("Something went wrong");
+      }
     }
   };
 
@@ -59,30 +115,61 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
     <div className="modal modal-open">
       <div className="modal-box space-y-4">
 
-        {/* Header */}
         <h2 className="text-xl font-bold">
-          {mode === "complete"
+          {mode === "create"
+            ? "Create Session"
+            : mode === "complete"
             ? "Complete Session"
             : mode === "notes"
             ? "Edit Notes"
             : "Session Summary"}
         </h2>
 
-        {/* ✅ COMPLETE FORM */}
-        {mode === "complete" && (
+        {/* CREATE */}
+        {mode === "create" && (
           <div className="space-y-3">
 
+            <select
+              name="patientId"
+              className="select select-bordered w-full"
+              value={form.patientId}
+              onChange={handleChange}
+            >
+              <option value="">Select Patient</option>
+              {patients.map((p, index) => (
+                <option key={p._id || index} value={p._id}>
+                  {p.name} ({p.unit})
+                </option>
+              ))}
+            </select>
+
             <input
-              type="number"
-              name="postWeight"
-              placeholder="Post Weight (kg)"
+              type="date"
+              name="sessionDate"
+              className="input input-bordered w-full"
+              onChange={handleChange}
+            />
+
+            {/* ✅ MACHINE ID */}
+            <input
+              type="text"
+              name="machineId"
+              placeholder="Machine ID (e.g. MACH-01)"
               className="input input-bordered w-full"
               onChange={handleChange}
             />
 
             <input
               type="number"
-              name="postSystolicBP"
+              name="preWeight"
+              placeholder="Pre Weight"
+              className="input input-bordered w-full"
+              onChange={handleChange}
+            />
+
+            <input
+              type="number"
+              name="preSystolicBP"
               placeholder="Systolic BP"
               className="input input-bordered w-full"
               onChange={handleChange}
@@ -90,114 +177,54 @@ export default function SessionForm({ session, mode, onClose, onSuccess }) {
 
             <input
               type="number"
-              name="postDiastolicBP"
+              name="preDiastolicBP"
               placeholder="Diastolic BP"
               className="input input-bordered w-full"
               onChange={handleChange}
             />
 
-            <input
-              type="number"
-              name="duration"
-              placeholder="Duration (minutes)"
-              className="input input-bordered w-full"
+            <textarea
+              name="notes"
+              placeholder="Notes"
+              className="textarea textarea-bordered w-full"
               onChange={handleChange}
             />
           </div>
         )}
 
-        {/* ✅ VIEW SUMMARY (READ-ONLY) */}
-       {mode === "view" && (
-  <div className="space-y-4 text-sm">
-
-    {/* Patient */}
-    <div>
-      <p className="font-semibold text-base">
-        {session.patient?.name || "Unknown Patient"}
-      </p>
-      <p className="text-xs text-gray-400 capitalize">
-        Status: {session.status}
-      </p>
-    </div>
-
-    {/* Pre Dialysis */}
-    <div className="p-3 bg-base-200 rounded">
-      <p className="font-semibold mb-1">Pre-Dialysis</p>
-      <p>Weight: {session.preWeight ?? "--"} kg</p>
-      <p>
-        BP: {session.preSystolicBP && session.preDiastolicBP
-          ? `${session.preSystolicBP}/${session.preDiastolicBP}`
-          : "--"}
-      </p>
-    </div>
-
-    {/* Post Dialysis */}
-    <div className="p-3 bg-base-200 rounded">
-      <p className="font-semibold mb-1">Post-Dialysis</p>
-      <p>Weight: {session.postWeight ?? "--"} kg</p>
-      <p>
-        BP: {session.postSystolicBP && session.postDiastolicBP
-          ? `${session.postSystolicBP}/${session.postDiastolicBP}`
-          : "--"}
-      </p>
-    </div>
-
-    {/* Session Info */}
-    <div className="p-3 bg-base-200 rounded">
-      <p><strong>Duration:</strong> {session.duration || "--"} mins</p>
-      <p><strong>Notes:</strong> {session.notes || "No notes"}</p>
-    </div>
-
-    {/* Anomalies */}
-    {session.anomalies?.length > 0 && (
-      <div className="p-3 bg-red-100 rounded">
-        <p className="font-semibold text-red-600 mb-1">Anomalies</p>
-        <ul className="list-disc list-inside text-red-600 text-xs">
-          {session.anomalies.map((a, i) => (
-            <li key={i}>{a}</li>
-          ))}
-        </ul>
-      </div>
-    )}
-
-  </div>
-)} {mode === "view" && (
-          <div className="space-y-2 text-sm">
-
-            <p><strong>Post Weight:</strong> {session.postWeight || "--"} kg</p>
-
-            <p>
-              <strong>Post BP:</strong>{" "}
-              {session.postSystolicBP && session.postDiastolicBP
-                ? `${session.postSystolicBP}/${session.postDiastolicBP}`
-                : "--"}
-            </p>
-
-            <p><strong>Duration:</strong> {session.duration || "--"} mins</p>
-
-            <p><strong>Notes:</strong> {session.notes || "No notes"}</p>
-
+        {/* COMPLETE */}
+        {mode === "complete" && (
+          <div className="space-y-3">
+            <input type="number" name="postWeight" placeholder="Post Weight" className="input input-bordered w-full" onChange={handleChange} />
+            <input type="number" name="postSystolicBP" placeholder="Systolic BP" className="input input-bordered w-full" onChange={handleChange} />
+            <input type="number" name="postDiastolicBP" placeholder="Diastolic BP" className="input input-bordered w-full" onChange={handleChange} />
+            <input type="number" name="duration" placeholder="Duration" className="input input-bordered w-full" onChange={handleChange} />
           </div>
         )}
 
-        {/* ✅ NOTES INPUT */}
+        {/* VIEW */}
+        {mode === "view" && (
+          <div className="space-y-4 text-sm">
+            <p><b>{session.patient?.name}</b></p>
+            <p>Status: {session.status}</p>
+            <p>Pre: {session.preWeight} kg</p>
+            <p>Post: {session.postWeight ?? "--"} kg</p>
+            <p>Duration: {session.duration || "--"} mins</p>
+            <p>Notes: {session.notes || "No notes"}</p>
+          </div>
+        )}
+
         {(mode === "notes" || mode === "complete") && (
           <textarea
             name="notes"
-            placeholder="Notes"
             className="textarea textarea-bordered w-full"
             value={form.notes}
             onChange={handleChange}
           />
         )}
 
-        {/* ACTIONS */}
         <div className="modal-action">
-          <button className="btn" onClick={onClose}>
-            Cancel
-          </button>
-
-          {/* ❌ Hide in view mode */}
+          <button className="btn" onClick={onClose}>Cancel</button>
           {mode !== "view" && (
             <button className="btn btn-primary" onClick={handleSubmit}>
               Save

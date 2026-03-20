@@ -12,6 +12,7 @@ function App() {
   const [selectedUnit, setSelectedUnit] = useState('');
   const [showOnlyAnomalies, setShowOnlyAnomalies] = useState(false);
   const [units, setUnits] = useState([]);
+  const [patients, setPatients] = useState([]); // ✅ ADDED
   const [modal, setModal] = useState({
     open: false,
     session: null,
@@ -30,6 +31,9 @@ function App() {
     const loadUnits = async () => {
       try {
         const res = await fetchPatients();
+
+        setPatients(res.data); // ✅ ADDED
+
         const allUnits = [...new Set(res.data.map(p => p.unit))];
         setUnits(allUnits);
       } catch (err) {
@@ -82,6 +86,16 @@ function App() {
           </h1>
           <p className="text-gray-500 mb-6">{today}</p>
 
+          {/* Add Session Button */}
+          <div className="flex justify-end mb-4">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setModal({ open: true, session: null, mode: 'create' })}
+            >
+              + Add Session
+            </button>
+          </div>
+
           {/* Filters */}
           <FilterBar
             selectedUnit={selectedUnit}
@@ -102,7 +116,6 @@ function App() {
 
                 const sessionId = session._id;
 
-                // ✅ SAFE BP HANDLING
                 const preBPParts = session.preBP ? session.preBP.split("/") : [];
                 const postBPParts = session.postBP ? session.postBP.split("/") : [];
 
@@ -110,22 +123,16 @@ function App() {
                   patient: {
                     name: session.patientName || "Unknown Patient",
                   },
-
                   status: session.status,
-
                   preWeight: session.preWeight,
                   postWeight: session.postWeight,
-
                   preSystolicBP: preBPParts[0] || null,
                   preDiastolicBP: preBPParts[1] || null,
-
                   postSystolicBP: postBPParts[0] || null,
                   postDiastolicBP: postBPParts[1] || null,
-
                   duration: session.duration,
                   anomalies: session.anomalies || [],
                   notes: session.notes,
-
                   _id: sessionId
                 };
 
@@ -133,11 +140,10 @@ function App() {
                   <PatientCard
                     key={sessionId || index}
                     session={mappedSession}
-
                     onStart={() => handleStartSession(sessionId)}
                     onComplete={() => openCompleteModal(mappedSession)}
                     onEditNotes={() => openNotesModal(mappedSession)}
-                    onView={() => openViewModal(mappedSession)}   // ✅ FIXED
+                    onView={() => openViewModal(mappedSession)}
                   />
                 );
               })}
@@ -153,6 +159,7 @@ function App() {
           mode={modal.mode}
           onClose={closeModal}
           onSuccess={onModalSuccess}
+          patients={patients} // ✅ ADDED
         />
       )}
     </div>
