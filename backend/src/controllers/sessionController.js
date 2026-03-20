@@ -169,7 +169,9 @@ const getTodaysSessions = async (req, res) => {
           : null,
         duration: session.duration || null,
         anomalies: session.anomalies,
-        notes: session.notes
+        notes: session.notes,
+          machineId: session.machineId
+
       };
     });
 

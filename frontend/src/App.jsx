@@ -12,7 +12,7 @@ function App() {
   const [selectedUnit, setSelectedUnit] = useState('');
   const [showOnlyAnomalies, setShowOnlyAnomalies] = useState(false);
   const [units, setUnits] = useState([]);
-  const [patients, setPatients] = useState([]); // ✅ ADDED
+  const [patients, setPatients] = useState([]);
   const [modal, setModal] = useState({
     open: false,
     session: null,
@@ -28,19 +28,19 @@ function App() {
   );
 
   useEffect(() => {
-    const loadUnits = async () => {
+    const loadPatients = async () => {
       try {
         const res = await fetchPatients();
 
-        setPatients(res.data); // ✅ ADDED
+        setPatients(res.data);
 
         const allUnits = [...new Set(res.data.map(p => p.unit))];
         setUnits(allUnits);
       } catch (err) {
-        console.error('Failed to load units', err);
+        console.error('Failed to load patients', err);
       }
     };
-    loadUnits();
+    loadPatients();
   }, []);
 
   // ✅ START SESSION
@@ -64,6 +64,9 @@ function App() {
   const openCompleteModal = (session) =>
     setModal({ open: true, session, mode: 'complete' });
 
+  const openCreatePatientModal = () =>
+    setModal({ open: true, session: null, mode: 'createPatient' });
+
   const closeModal = () =>
     setModal({ open: false, session: null, mode: 'create' });
 
@@ -86,8 +89,15 @@ function App() {
           </h1>
           <p className="text-gray-500 mb-6">{today}</p>
 
-          {/* Add Session Button */}
-          <div className="flex justify-end mb-4">
+          {/* 🔥 ACTION BUTTONS */}
+          <div className="flex justify-between mb-4">
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={openCreatePatientModal}
+            >
+              + Add Patient
+            </button>
+
             <button
               className="btn btn-primary btn-sm"
               onClick={() => setModal({ open: true, session: null, mode: 'create' })}
@@ -133,6 +143,7 @@ function App() {
                   duration: session.duration,
                   anomalies: session.anomalies || [],
                   notes: session.notes,
+                  machineId: session.machineId, // ✅ FIXED
                   _id: sessionId
                 };
 
@@ -159,7 +170,7 @@ function App() {
           mode={modal.mode}
           onClose={closeModal}
           onSuccess={onModalSuccess}
-          patients={patients} // ✅ ADDED
+          patients={patients}
         />
       )}
     </div>
