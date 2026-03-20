@@ -7,7 +7,7 @@ export default function AnomalyBadge({ type }) {
 
   return (
     <span className={`badge ${map[type] || "badge-neutral"}`}>
-      {type.replaceAll("_", " ")}
+      ⚠ {type.replaceAll("_", " ")}
     </span>
   );
 }
