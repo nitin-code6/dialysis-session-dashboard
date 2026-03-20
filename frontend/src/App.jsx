@@ -39,13 +39,23 @@ function App() {
     loadUnits();
   }, []);
 
-  // 🔥 ACTIONS
+  // ✅ START HANDLER
   const handleStartSession = async (sessionId) => {
     try {
+      console.log("🚀 Start clicked:", sessionId);
+
+      if (!sessionId) {
+        console.error("❌ Session ID missing");
+        return;
+      }
+
       await startSession(sessionId);
+
+      console.log("✅ Start success");
+
       refetch();
     } catch (err) {
-      console.error('Failed to start session', err);
+      console.error('❌ Failed to start session:', err);
     }
   };
 
@@ -94,13 +104,15 @@ function App() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
               {sessions.map((session, index) => {
+                console.log("SESSION OBJECT:", session);
+                // ✅ FIX: SAFE ID EXTRACTION
+                const sessionId = session._id || session.id;
 
-                // 🔥 FIXED MAPPING (VERY IMPORTANT)
                 const mappedSession = {
                   patient: {
                     name: session.patientName || "Unknown Patient",
                   },
-
+                  
                   status: session.status,
 
                   preWeight: session.preWeight,
@@ -116,16 +128,18 @@ function App() {
                   anomalies: session.anomalies || [],
                   notes: session.notes,
 
-                  _id: session._id
+                  _id: sessionId
                 };
 
                 return (
                   <PatientCard
-                    key={index}
+                    key={sessionId || index}
                     session={mappedSession}
-                    onStart={() => handleStartSession(session._id)}
-                    onComplete={() => openCompleteModal(session)}
-                    onEditNotes={() => openNotesModal(session)}
+
+                    // ✅ FIXED ACTIONS
+                    onStart={() => handleStartSession(sessionId)}
+                    onComplete={() => openCompleteModal(mappedSession)}
+                    onEditNotes={() => openNotesModal(mappedSession)}
                   />
                 );
               })}

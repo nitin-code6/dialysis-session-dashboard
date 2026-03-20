@@ -158,6 +158,7 @@ const getTodaysSessions = async (req, res) => {
       const patient = patientMap[session.patientId.toString()];
 
       return {
+         _id: session._id,
         patientName: patient?.name || "Unknown",
         status: session.status,
         preWeight: session.preWeight,
